@@ -5,6 +5,7 @@ create table if not exists public.profiles (
   email text not null,
   username text,
   roblox_username text,
+  is_admin boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -18,17 +19,26 @@ create table if not exists public.orders (
   roblox_username text not null,
   payer_name text,
   payer_document text,
+  gamepass_url text,
   status text not null default 'PENDING' check (status in ('PENDING','PAID','PROCESSING','DELIVERED','CANCELLED','FAILED')),
   payment_transaction_id text unique,
   pix_copy_paste text,
   pix_qr_code text,
+  delivery_note text,
+  delivered_at timestamptz,
+  delivered_by uuid references public.profiles(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 alter table public.profiles add column if not exists roblox_username text;
+alter table public.profiles add column if not exists is_admin boolean not null default false;
 alter table public.orders add column if not exists payer_name text;
 alter table public.orders add column if not exists payer_document text;
+alter table public.orders add column if not exists gamepass_url text;
+alter table public.orders add column if not exists delivery_note text;
+alter table public.orders add column if not exists delivered_at timestamptz;
+alter table public.orders add column if not exists delivered_by uuid references public.profiles(id);
 
 create index if not exists orders_user_id_idx on public.orders(user_id);
 create index if not exists orders_created_at_idx on public.orders(created_at desc);
@@ -43,8 +53,11 @@ drop policy if exists profiles_insert_own on public.profiles;
 create policy profiles_insert_own on public.profiles for insert with check (auth.uid() = id);
 drop policy if exists profiles_update_own on public.profiles;
 create policy profiles_update_own on public.profiles for update using (auth.uid() = id) with check (auth.uid() = id);
+
 drop policy if exists orders_select_own on public.orders;
 create policy orders_select_own on public.orders for select using (auth.uid() = user_id);
+drop policy if exists orders_select_pending_authenticated on public.orders;
+create policy orders_select_pending_authenticated on public.orders for select to authenticated using (status = 'PENDING');
 drop policy if exists orders_insert_own on public.orders;
 create policy orders_insert_own on public.orders for insert with check (auth.uid() = user_id);
 

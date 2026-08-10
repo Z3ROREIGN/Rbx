@@ -1,57 +1,50 @@
 import { createClient } from '@supabase/supabase-js';
 
-const json = (res, status, body) => res.status(status).setHeader('Content-Type', 'application/json').json(body);
-
-function cpfDigits(value = '') { return String(value).replace(/\D/g, '').slice(0, 11); }
+const json = (res, status, body) => res.status(status).json(body);
+const digits = (value = '') => String(value).replace(/\D/g, '').slice(0, 11);
 function validCPF(value) {
-  const d = cpfDigits(value);
+  const d = digits(value);
   if (d.length !== 11 || /^(\d)\1+$/.test(d)) return false;
-  let sum = 0;
-  for (let i = 0; i < 9; i++) sum += Number(d[i]) * (10 - i);
-  let digit = (sum * 10) % 11; if (digit === 10) digit = 0;
-  if (digit !== Number(d[9])) return false;
-  sum = 0;
-  for (let i = 0; i < 10; i++) sum += Number(d[i]) * (11 - i);
-  digit = (sum * 10) % 11; if (digit === 10) digit = 0;
-  return digit === Number(d[10]);
+  let s = 0;
+  for (let i = 0; i < 9; i++) s += +d[i] * (10 - i);
+  let r = (s * 10) % 11; if (r === 10) r = 0;
+  if (r !== +d[9]) return false;
+  s = 0;
+  for (let i = 0; i < 10; i++) s += +d[i] * (11 - i);
+  r = (s * 10) % 11; if (r === 10) r = 0;
+  return r === +d[10];
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return json(res, 405, { error: 'Method not allowed' });
+  if (req.method !== 'POST') return json(res, 405, { error: 'Método não permitido.' });
+  try {
+    const body = req.body || {};
+    const name = String(body.name || '').trim();
+    const cpf = digits(body.cpf);
+    const email = String(body.email || '').trim().toLowerCase();
+    const robloxUsername = String(body.robloxUsername || '').trim();
+    const quantity = Number(body.quantity);
+    const type = body.type === 'Robux Plus' ? 'Robux Plus' : 'Gamepass';
 
-  const { name, cpf, email, robloxUsername, quantity, type } = req.body || {};
-  const qty = Number(quantity);
-  const normalizedType = type === 'Robux Plus' ? 'Robux Plus' : 'Gamepass';
+    if (name.split(/\s+/).length < 2) return json(res, 400, { error: 'Informe o nome completo.' });
+    if (!validCPF(cpf)) return json(res, 400, { error: 'Informe um CPF válido.' });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(res, 400, { error: 'Informe um e-mail válido.' });
+    if (!/^[A-Za-z0-9_]{3,20}$/.test(robloxUsername)) return json(res, 400, { error: 'Usuário do Roblox inválido.' });
+    if (!Number.isInteger(quantity) || quantity < 1000 || quantity > 50000 || quantity % 1000 !== 0) return json(res, 400, { error: 'Quantidade inválida.' });
 
-  if (!name || String(name).trim().split(/\s+/).length < 2) return json(res, 400, { error: 'Nome completo inválido.' });
-  if (!validCPF(cpf)) return json(res, 400, { error: 'CPF inválido.' });
-  if (!/^\S+@\S+\.\S+$/.test(String(email || ''))) return json(res, 400, { error: 'E-mail inválido.' });
-  if (!robloxUsername || String(robloxUsername).trim().length < 3) return json(res, 400, { error: 'Usuário do Roblox inválido.' });
-  if (!Number.isInteger(qty) || qty < 1000 || qty > 50000 || qty % 1000 !== 0) return json(res, 400, { error: 'Quantidade inválida.' });
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceKey) return json(res, 500, { error: 'Backend não configurado.' });
 
-  const unitPrice = normalizedType === 'Gamepass' ? 26 : 40;
-  const amount = Number((qty / 1000 * unitPrice).toFixed(2));
+    const amount = Number((quantity / 1000 * (type === 'Gamepass' ? 26 : 40)).toFixed(2));
+    const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+    const { data, error } = await supabase.from('orders').insert({ customer_name: name, customer_cpf: cpf, customer_email: email, roblox_username: robloxUsername, quantity, product_type: type, amount, status: 'pending' }).select('id,amount,status,created_at').single();
+    if (error) return json(res, 500, { error: 'Não foi possível criar o pedido.', detail: error.message });
 
-  // Secret keys are read only on the server. Never expose these variables to browser code.
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceKey) return json(res, 500, { error: 'Backend não configurado.' });
-
-  const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-  const { data, error } = await supabase.from('orders').insert({
-    customer_name: String(name).trim(),
-    customer_cpf: cpfDigits(cpf),
-    customer_email: String(email).trim().toLowerCase(),
-    roblox_username: String(robloxUsername).trim(),
-    quantity: qty,
-    product_type: normalizedType,
-    amount,
-    status: 'pending'
-  }).select('id,amount,status,created_at').single();
-
-  if (error) return json(res, 500, { error: 'Não foi possível criar o pedido.' });
-
-  // Payment provider integration belongs here. Credentials are intentionally not stored in source control.
-  // Configure MISTICPAY_CLIENT_ID / MISTICPAY_CLIENT_SECRET in the hosting environment.
-  return json(res, 201, { order: data, payment: null });
+    // The payment provider must be called here using server-only environment variables.
+    // Never move these credentials into frontend code.
+    return json(res, 201, { order: data, payment: null, next: 'payment_provider' });
+  } catch (error) {
+    return json(res, 500, { error: 'Erro interno ao criar o pedido.' });
+  }
 }

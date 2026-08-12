@@ -1,10 +1,10 @@
 // Best Robux — shared Supabase authentication/session configuration
-// This file contains only the public Supabase client key. Never put service-role secrets here.
+// Public client key only. Never put a service-role secret in browser code.
 (function () {
   const URL = 'https://anlwpqwjjswkqncltcdl.supabase.co';
   const KEY = 'sb_publishable_r3GoKwcOEaXySt7fFOM_0A_rNOc7Mq7';
-
-  window.bestRobuxSupabase = window.supabase.createClient(URL, KEY, {
+  const originalCreateClient = window.supabase.createClient.bind(window.supabase);
+  const client = originalCreateClient(URL, KEY, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
@@ -14,9 +14,10 @@
       flowType: 'pkce'
     }
   });
-
+  window.bestRobuxSupabase = client;
+  // Pages that create a client inline now share this persistent session.
+  window.supabase.createClient = function () { return client; };
   window.bestRobuxAuthReady = (async function () {
-    const client = window.bestRobuxSupabase;
     const { data, error } = await client.auth.getSession();
     if (error) console.warn('[Best Robux] sessão:', error.message);
     client.auth.onAuthStateChange((event, session) => {

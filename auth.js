@@ -15,14 +15,33 @@
     }
   });
   window.bestRobuxSupabase = client;
-  // Pages that create a client inline now share this persistent session.
   window.supabase.createClient = function () { return client; };
   window.bestRobuxAuthReady = (async function () {
     const { data, error } = await client.auth.getSession();
     if (error) console.warn('[Best Robux] sessão:', error.message);
-    client.auth.onAuthStateChange((event, session) => {
-      window.dispatchEvent(new CustomEvent('bestrobux:auth', { detail: { event, session } }));
+    const session = data && data.session ? data.session : null;
+    if (session) {
+      try {
+        const { data: profile, error: profileError } = await client
+          .from('profiles')
+          .select('account_status,suspended_until')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        if (!profileError && profile) {
+          const banned = profile.account_status === 'BANNED';
+          const suspended = profile.account_status === 'SUSPENDED' && profile.suspended_until && new Date(profile.suspended_until) > new Date();
+          if (banned || suspended) {
+            await client.auth.signOut();
+            return null;
+          }
+        }
+      } catch (e) {
+        console.warn('[Best Robux] não foi possível verificar status da conta:', e.message);
+      }
+    }
+    client.auth.onAuthStateChange((event, nextSession) => {
+      window.dispatchEvent(new CustomEvent('bestrobux:auth', { detail: { event, session: nextSession } }));
     });
-    return data && data.session ? data.session : null;
+    return session;
   })();
 })();

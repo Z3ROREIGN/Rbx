@@ -75,3 +75,12 @@ drop trigger if exists profiles_updated_at on public.profiles;
 create trigger profiles_updated_at before update on public.profiles for each row execute procedure public.set_updated_at();
 drop trigger if exists orders_updated_at on public.orders;
 create trigger orders_updated_at before update on public.orders for each row execute procedure public.set_updated_at();
+
+create table if not exists public.site_settings (id boolean primary key default true check (id), site_name text not null default 'Best Robux', logo_url text, updated_at timestamptz not null default now());
+insert into public.site_settings(id,site_name,logo_url) values(true,'Best Robux',null) on conflict(id) do nothing;
+alter table public.site_settings enable row level security;
+drop policy if exists site_settings_public_read on public.site_settings;
+create policy site_settings_public_read on public.site_settings for select using (true);
+create or replace function public.update_site_identity(p_site_name text, p_logo_url text) returns public.site_settings language plpgsql security definer set search_path=public as $$ declare v public.site_settings; begin if auth.uid() is null or auth.uid() <> '7e60dfb5-7467-4131-8193-1e8e7e1f307a'::uuid then raise exception 'ONLY_SITE_LEADER'; end if; if p_site_name is null or char_length(trim(p_site_name)) < 2 or char_length(trim(p_site_name)) > 40 then raise exception 'INVALID_SITE_NAME'; end if; if p_logo_url is not null and char_length(p_logo_url) > 500 then raise exception 'INVALID_LOGO_URL'; end if; update public.site_settings set site_name=trim(p_site_name),logo_url=nullif(trim(coalesce(p_logo_url,'')),''),updated_at=now() where id=true returning * into v; return v; end; $$;
+grant select on public.site_settings to anon, authenticated;
+grant execute on function public.update_site_identity(text,text) to authenticated;

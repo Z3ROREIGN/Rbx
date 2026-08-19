@@ -13,7 +13,7 @@ export default async function handler(req,res){
   const limit=Math.min(Math.max(Number(req.query.limit)||500,1),1000);let q=db.from(resource).select('*');
   for(const key of ['id','user_id','ticket_id','conversation_id'])if(req.query[key])q=q.eq(key,String(req.query[key]));
   if(req.query.ids){const ids=String(req.query.ids).split(',').filter(Boolean).slice(0,1000);if(ids.length)q=q.in('id',ids)}
-  if(req.query.user_ids){const ids=String(req.query.user_ids).split(',').filter(Boolean).slice(0,1000);if(ids.length)q=q.in('id',ids)}
+  if(req.query.user_ids){const ids=String(req.query.user_ids).split(',').filter(Boolean).slice(0,1000);if(ids.length)q=q.in('user_id',ids)}
   const order=String(req.query.order||'created_at'),ascending=String(req.query.asc||'false')==='true';q=q.order(order,{ascending}).limit(limit);
   const {data,error}=await q;if(error)return res.status(500).json({error:error.message});
   return res.status(200).json({data:Array.isArray(data)?data:[]});

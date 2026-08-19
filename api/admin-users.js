@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-const env=n=>{if(!process.env[n])throw Error(`Missing ${n}`);return process.env[n]};
+const env=n=>{const v=process.env[n];if(!v)throw Error(`Missing ${n}`);return v};
 const roleCanModerate=new Set(['LIDER','ADMINISTRADOR']);
 export default async function handler(req,res){
  try{

@@ -12,9 +12,9 @@ export default async function handler(req,res){
   const {data:ok,error:pe}=await db.rpc('is_admin',{uid:user.id});if(pe)return res.status(500).json({error:'Não foi possível verificar a permissão administrativa.'});if(!ok)return res.status(403).json({error:'Acesso negado.'});
   const resource=String(req.query.resource||'');if(!allowed.has(resource))return res.status(400).json({error:'Recurso administrativo inválido.'});
   const limit=Math.min(Math.max(Number(req.query.limit)||500,1),1000);let q=db.from(resource).select('*');
-  for(const key of filterable)if(req.query[key])q=q.eq(key,String(req.query[key]));
+  for(const original of filterable){if(!req.query[original])continue;const key=resource==='profiles'&&original==='user_id'?'id':original;q=q.eq(key,String(req.query[original]))}
   if(req.query.ids){const ids=String(req.query.ids).split(',').filter(Boolean).slice(0,1000);if(ids.length)q=q.in('id',ids)}
-  if(req.query.user_ids){const ids=String(req.query.user_ids).split(',').filter(Boolean).slice(0,1000);if(ids.length)q=q.in('user_id',ids)}
+  if(req.query.user_ids){const ids=String(req.query.user_ids).split(',').filter(Boolean).slice(0,1000);if(ids.length)q=q.in(resource==='profiles'?'id':'user_id',ids)}
   if(req.query.sender_ids){const ids=String(req.query.sender_ids).split(',').filter(Boolean).slice(0,1000);if(ids.length)q=q.in('sender_id',ids)}
   const order=String(req.query.order||'created_at'),ascending=String(req.query.asc||'false')==='true';q=q.order(order,{ascending}).limit(limit);
   const {data,error}=await q;if(error)return res.status(500).json({error:error.message});

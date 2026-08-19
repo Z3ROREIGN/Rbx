@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 const env=n=>{if(!process.env[n])throw Error(`Missing ${n}`);return process.env[n]};
-const allowed=new Set(['profiles','direct_conversations','direct_messages','reports','support_tickets','support_messages','admin_audit_logs','site_settings','products','coupons']);
+const allowed=new Set(['profiles','direct_conversations','direct_messages','reports','support_tickets','support_messages','admin_audit_logs','admin_roles','site_settings','products','coupons']);
 const filterable=['id','user_id','user_a','user_b','sender_id','ticket_id','conversation_id'];
 export default async function handler(req,res){
  if(req.method!=='GET')return res.status(405).json({error:'Método não permitido.'});

@@ -1,7 +1,1 @@
-export default function handler(req, res) {
-  res.setHeader('Cache-Control', 'no-store');
-  res.status(200).json({
-    supabaseUrl: process.env.SUPABASE_URL || '',
-    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || ''
-  });
-}
+export default function handler(req,res){res.setHeader('Cache-Control','no-store');if(req.method!=='GET')return res.status(405).json({error:'Método não permitido.'});const url=process.env.SUPABASE_URL||'',key=process.env.SUPABASE_ANON_KEY||'';if(!url||!key)return res.status(503).json({error:'Serviço não configurado.'});return res.status(200).json({supabaseUrl:url,supabaseAnonKey:key})}

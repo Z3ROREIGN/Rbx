@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "BestRobux",
+    "slug": "bestrobux",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "android": {"package":"com.bestrobux.app"},
+    "plugins": [],
+    "extra": {"siteUrl":"https://bestrobux.vercel.app"}
+  }
+}

@@ -1,12 +1,20 @@
 {
   "expo": {
-    "name": "BestRobux",
+    "name": "Best Robux",
     "slug": "bestrobux",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "owner": "whioskks-team",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "android": {"package":"com.bestrobux.app"},
+    "scheme": "bestrobux",
+    "android": {
+      "package": "com.bestrobux.app",
+      "versionCode": 2,
+      "adaptiveIcon": {
+        "backgroundColor": "#090a0b",
+        "foregroundImage": "../assets/best-robux-logo.svg"
+      }
+    },
     "plugins": [],
     "extra": {"siteUrl":"https://bestrobux.vercel.app"}
   }

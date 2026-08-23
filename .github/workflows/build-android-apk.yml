@@ -44,11 +44,24 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Verify generated Android project
+        run: |
+          test -f android/settings.gradle || test -f android/settings.gradle.kts
+          test -f android/gradlew
+          test -f android/app/build.gradle || test -f android/app/build.gradle.kts
+          ls -la android
+
       - name: Make Gradle executable
         run: chmod +x android/gradlew
 
       - name: Build release APK locally
-        run: ./android/gradlew assembleRelease --no-daemon --stacktrace
+        working-directory: mobile/android
+        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
+
+      - name: Verify APK
+        run: |
+          test -n "$(find android/app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          ls -lh android/app/build/outputs/apk/release/*.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

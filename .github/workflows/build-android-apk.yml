@@ -15,15 +15,25 @@ jobs:
         working-directory: mobile
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Install dependencies
         run: npm install
+
+      - name: Generate Android icon from Best Robux logo
+        run: |
+          mkdir -p assets
+          if ! command -v convert >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y imagemagick
+          fi
+          convert ../assets/best-robux-logo.svg -background none -resize 1024x1024 -gravity center -extent 1024x1024 assets/icon.png
+          file assets/icon.png
 
       - name: Setup Expo/EAS
         run: npm install --global eas-cli

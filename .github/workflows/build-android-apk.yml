@@ -28,10 +28,15 @@ jobs:
       - name: Setup Expo/EAS
         run: npm install --global eas-cli
 
+      - name: Verify Expo authentication
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas whoami
+
       - name: Configure EAS project
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas init --account whioskks-team --non-interactive
+        run: eas init --account whioskks-team --force --non-interactive --json
 
       - name: Build APK
         env:

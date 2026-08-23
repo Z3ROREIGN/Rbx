@@ -7,12 +7,13 @@
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "scheme": "bestrobux",
+    "icon": "./assets/icon.png",
     "android": {
       "package": "com.bestrobux.app",
       "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#090a0b",
-        "foregroundImage": "../assets/best-robux-logo.svg"
+        "foregroundImage": "./assets/icon.png"
       }
     },
     "plugins": [],

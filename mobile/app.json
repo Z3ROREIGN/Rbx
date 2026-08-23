@@ -3,6 +3,7 @@
     "name": "BestRobux",
     "slug": "bestrobux",
     "version": "1.0.0",
+    "owner": "whioskks-team",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "android": {"package":"com.bestrobux.app"},

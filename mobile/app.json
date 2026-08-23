@@ -2,7 +2,7 @@
   "expo": {
     "name": "Best Robux",
     "slug": "bestrobux",
-    "version": "1.0.1",
+    "version": "1.1.0",
     "owner": "whioskks-team",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
@@ -10,13 +10,14 @@
     "icon": "./assets/icon.png",
     "android": {
       "package": "com.bestrobux.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#090a0b",
         "foregroundImage": "./assets/icon.png"
-      }
+      },
+      "softwareKeyboardLayoutMode": "resize"
     },
-    "plugins": [],
+    "plugins": ["expo-web-browser"],
     "extra": {"siteUrl":"https://bestrobux.vercel.app"}
   }
 }

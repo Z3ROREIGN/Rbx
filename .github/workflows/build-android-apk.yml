@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android APK (local)
 
 on:
   workflow_dispatch:
@@ -21,9 +21,11 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 24
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Generate Android icon from Best Robux logo
         run: |
@@ -35,20 +37,25 @@ jobs:
           convert ../assets/best-robux-logo.svg -background none -resize 1024x1024 -gravity center -extent 1024x1024 assets/icon.png
           file assets/icon.png
 
-      - name: Setup Expo/EAS
-        run: npm install --global eas-cli
+      - name: Generate native Android project
+        run: npx expo prebuild --platform android --non-interactive --clean
 
-      - name: Verify Expo authentication
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas whoami
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
 
-      - name: Configure EAS project
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas init --account whioskks-team --force --non-interactive --json
+      - name: Make Gradle executable
+        run: chmod +x android/gradlew
 
-      - name: Build APK
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas build --platform android --profile preview --non-interactive --wait
+      - name: Build release APK locally
+        run: ./android/gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: best-robux-android-apk
+          path: mobile/android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 14

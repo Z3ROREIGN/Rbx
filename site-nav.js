@@ -1,1 +1,47 @@
-(()=>{const N=[['home','Início','/'],['store','Loja','/#produtos'],['marketplace','Marketplace','/marketplace.html'],['wallet','Carteira','/wallet.html'],['sell','Vender','/seller-register.html'],['seller','Central do vendedor','/seller-dashboard.html'],['product-chat','Produtos comprados/vendidos','/product-chat.html'],['orders','Pedidos','/orders.html'],['support','Suporte','/support.html'],['profile','Perfil','/profile.html'],['chat','Chat','/chat.html'],['notifications','Notificações','/notifications.html'],['security','Segurança','/security.html'],['privacy','Privacidade','/privacy.html'],['settings','Configurações','/settings.html'],['updates','Atualizações','/updates.html'],['reports','Denúncias','/reports.html'],['favorites','Favoritos','/favorites.html']];const A=[['admin','Administração','/admin.html'],['admin-orders','Pedidos admin','/admin-orders.html'],['admin-support','Suporte admin','/admin-support.html'],['admin-reports','Denúncias admin','/admin-reports.html'],['admin-chats','Análise de conversas','/admin-chats.html'],['admin-users','Usuários','/admin-users.html'],['admin-admins','Administradores','/admin-admins.html'],['admin-tools','Ferramentas','/admin-tools.html'],['admin-commerce','Comércio','/admin-commerce.html']];const P=['/account.html','/profile.html','/notifications.html','/chat.html','/settings.html','/reports.html','/orders.html','/support.html','/security.html','/privacy.html','/updates.html','/favorites.html','/wallet.html','/seller-register.html','/seller-dashboard.html','/product-chat.html','/admin.html','/admin-reports.html','/admin-orders.html','/admin-users.html','/admin-chats.html','/admin-admins.html','/admin-tools.html','/admin-support.html','/admin-commerce.html'];const p=location.pathname.toLowerCase(),active=x=>x[2].toLowerCase()===p||(x[0]==='home'&&(p==='/'||p==='/index.html'));document.querySelectorAll('#rb-nav-style,.rb-nav,.rb-mobile').forEach(e=>e.remove());const s=document.createElement('style');s.id='rb-nav-style';s.textContent=`body{padding-left:250px!important}.rb-nav{position:fixed;z-index:99999;left:0;top:0;bottom:0;width:250px;background:#111417;border-right:1px solid #292d32;padding:12px;box-sizing:border-box;overflow:auto;font-family:Inter,system-ui,sans-serif}.rb-logo{display:flex;align-items:center;gap:10px;height:48px;padding:0 10px;margin-bottom:10px;color:#fff;text-decoration:none;font-weight:800;border:1px solid #292e34;border-radius:7px;background:#181b1f}.rb-mark{width:30px;height:30px;border-radius:6px;background:#df3340;display:grid;place-items:center;font-size:11px}.rb-label{font-size:10px;color:#69717a;text-transform:uppercase;font-weight:800;letter-spacing:.08em;padding:9px 9px 5px}.rb-link{display:flex;align-items:center;min-height:38px;padding:0 10px;margin:2px 0;color:#9ba3ac;text-decoration:none;border-radius:6px;font-size:12px;font-weight:650;box-sizing:border-box}.rb-link:hover{background:#20252a;color:#fff}.rb-link.active{background:#35171b;color:#fff;border-left:3px solid #df3340;padding-left:7px}.rb-link.rb-admin{color:#ff9ba2}@media(max-width:760px){body{padding-left:0!important;padding-bottom:74px!important}.rb-nav{display:none}.rb-mobile{position:fixed;z-index:99999;left:8px;right:8px;bottom:8px;height:62px;background:#15191d;border:1px solid #30363d;border-radius:9px;display:grid;grid-template-columns:repeat(4,1fr) 1.1fr;padding:5px;box-sizing:border-box;font-family:Inter,system-ui,sans-serif}.rb-mobile a,.rb-mobile button{border:0;background:transparent;color:#9aa2aa;text-decoration:none;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;font-weight:700;gap:3px}.rb-mobile a.active{background:#35171b;color:#fff}.rb-mobile button{background:#22272c;color:#fff}.rb-sheet{display:none;position:fixed;z-index:100000;left:9px;right:9px;bottom:78px;max-height:70vh;overflow:auto;background:#15191d;border:1px solid #343a41;border-radius:9px;padding:8px;box-shadow:0 12px 40px #000b}.rb-sheet.open{display:block}.rb-sheet a{display:block;padding:12px 10px;color:#c3c8ce;text-decoration:none;border-radius:6px;font-size:12px}.rb-sheet a:hover,.rb-sheet a.active{background:#22272c;color:#fff}}`;document.head.appendChild(s);const side=document.createElement('aside');side.className='rb-nav';side.innerHTML='<a class="rb-logo" href="/"><span class="rb-mark">BR</span><span>Best Robux</span></a><div class="rb-label">Navegação</div>'+N.map(x=>`<a class="rb-link ${active(x)?'active':''}" href="${x[2]}">${x[1]}</a>`).join('')+'<div id="rb-admin-area"></div>';document.body.prepend(side);const m=document.createElement('div');m.className='rb-mobile';m.innerHTML=N.slice(0,4).map(x=>`<a class="${active(x)?'active':''}" href="${x[2]}">${x[1]}</a>`).join('')+'<button id="rb-more">Mais</button>';document.body.appendChild(m);const sheet=document.createElement('div');sheet.className='rb-sheet';sheet.id='rb-sheet';sheet.innerHTML=N.slice(4).map(x=>`<a class="${active(x)?'active':''}" href="${x[2]}">${x[1]}</a>`).join('');document.body.appendChild(sheet);document.getElementById('rb-more').onclick=()=>sheet.classList.toggle('open');const addAdmin=()=>{const area=document.getElementById('rb-admin-area');area.innerHTML='<div class="rb-label">Administração</div>'+A.map(x=>`<a class="rb-link rb-admin ${active(x)?'active':''}" href="${x[2]}">${x[1]}</a>`).join('');sheet.insertAdjacentHTML('beforeend','<div class="rb-label">Administração</div>'+A.map(x=>`<a class="${active(x)?'active':''}" href="${x[2]}">${x[1]}</a>`).join(''))};const auth=async()=>{try{const cfg=await fetch('/api/config',{cache:'no-store'}).then(r=>r.ok?r.json():null);if(!cfg?.supabaseUrl||!cfg?.supabaseAnonKey){if(A.some(x=>active(x)))addAdmin();return}if(!window.supabase){await new Promise((ok,no)=>{const q=document.createElement('script');q.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';q.onload=ok;q.onerror=no;document.head.appendChild(q)})}const c=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});const r=await c.auth.getSession();if(P.includes(p)&&!r.data.session){location.replace('/login.html?redirect='+encodeURIComponent(location.pathname+location.search));return}if(r.data.session){try{const q=await c.rpc('is_admin');if(q.data===true)addAdmin()}catch(_){}}}catch(_){} };auth()})();
+(()=>{
+  /* Navegação compartilhada — não altera o layout das páginas existentes. */
+  const path=location.pathname.toLowerCase();
+  const links=[
+    ['Marketplace','/marketplace.html'],
+    ['Carteira','/wallet.html'],
+    ['Vender','/seller-register.html'],
+    ['Pedidos','/orders.html'],
+    ['Minha conta','/account.html']
+  ];
+
+  // Importante: este arquivo NÃO injeta sidebar, NÃO altera body/padding e
+  // NÃO redireciona automaticamente. Cada página mantém seu próprio modelo.
+  // A autenticação continua sendo responsabilidade da própria página.
+  document.querySelectorAll('#rb-nav-style,.rb-nav,.rb-mobile,.rb-sheet').forEach(el=>el.remove());
+
+  // Na loja principal, apenas acrescenta os atalhos ao cabeçalho já existente.
+  const actions=document.querySelector('.headActions');
+  if(actions && !actions.dataset.marketplaceNav){
+    actions.dataset.marketplaceNav='1';
+    const frag=document.createDocumentFragment();
+    links.slice(0,2).forEach(([label,href])=>{
+      const a=document.createElement('a');
+      a.href=href;
+      a.textContent=label;
+      actions.prepend(a);
+    });
+  }
+
+  // Nas páginas que já possuem navegação própria, não cria uma segunda.
+  // Apenas garante que o link de retorno para o Marketplace/Wallet exista
+  // quando o documento tiver um cabeçalho com ações.
+  const nav=document.querySelector('header nav,header .nav');
+  if(nav){
+    const ensure=(label,href)=>{
+      if(![...nav.querySelectorAll('a')].some(a=>a.getAttribute('href')===href)){
+        const a=document.createElement('a');
+        a.className='btn';
+        a.href=href;
+        a.textContent=label;
+        nav.appendChild(a);
+      }
+    };
+    ensure('Carteira','/wallet.html');
+    ensure('Marketplace','/marketplace.html');
+  }
+})();

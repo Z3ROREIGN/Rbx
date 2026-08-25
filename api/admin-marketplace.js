@@ -15,19 +15,41 @@ async function getUser(req) {
 
 async function requireAdmin(req) {
   const user = await getUser(req);
-  // Read the role with service_role so admin_roles RLS cannot make the admin panel
-  // fail for legitimate admins. Authorization is still checked server-side.
   const a = admin();
   const { data: role, error } = await a.from('admin_roles').select('role').eq('user_id', user.id).maybeSingle();
   if (error) throw error;
-  if (!role || !['LIDER', 'ADMINISTRADOR'].includes(String(role.role).toUpperCase())) throw Error('FORBIDDEN');
-  return { user, a };
+  const normalizedRole = String(role?.role || '').toUpperCase();
+  if (!['LIDER', 'ADMINISTRADOR'].includes(normalizedRole)) throw Error('FORBIDDEN');
+  return { user, a, role: normalizedRole };
+}
+
+// Seller application contains sensitive personal data. Only the leader receives
+// the original values. Administrators can still approve/reject/manage the request,
+// but the API never sends CPF, birth date, e-mail or phone to them.
+function sanitizeApplications(rows, role) {
+  if (role === 'LIDER') return rows || [];
+  return (rows || []).map(x => ({
+    id: x.id,
+    user_id: x.user_id,
+    full_name: x.full_name ? String(x.full_name).replace(/(^|\s)(\S)(\S+)/g, (_, p, a, b) => `${p}${a}${'*'.repeat(Math.max(2, Math.min(4, b.length)))}`) : 'Solicitante',
+    birth_date: null,
+    cpf: null,
+    email: null,
+    phone: null,
+    status: x.status,
+    reviewed_by: x.reviewed_by,
+    reviewed_at: x.reviewed_at,
+    rejection_reason: x.rejection_reason,
+    created_at: x.created_at,
+    updated_at: x.updated_at,
+    sensitive_data_hidden: true
+  }));
 }
 
 export default async function handler(req, res) {
   try {
     if (!['GET', 'POST'].includes(req.method)) return out(res, 405, { error: 'Método não permitido.' });
-    const { user, a } = await requireAdmin(req);
+    const { user, a, role } = await requireAdmin(req);
     const action = String(req.body?.action || (req.method === 'GET' ? 'dashboard' : ''));
 
     if (action === 'dashboard') {
@@ -39,7 +61,14 @@ export default async function handler(req, res) {
         a.from('marketplace_products').select('*').order('created_at', { ascending: false }).limit(500)
       ]);
       for (const q of [apps, withdrawals, orders, archives, products]) if (q.error) throw q.error;
-      return out(res, 200, { applications: apps.data || [], withdrawals: withdrawals.data || [], orders: orders.data || [], archives: archives.data || [], products: products.data || [] });
+      return out(res, 200, {
+        role,
+        applications: sanitizeApplications(apps.data, role),
+        withdrawals: withdrawals.data || [],
+        orders: orders.data || [],
+        archives: archives.data || [],
+        products: products.data || []
+      });
     }
 
     if (action === 'review-seller') {
@@ -99,18 +128,22 @@ export default async function handler(req, res) {
       if (w.status === 'PAID' && status !== 'PAID') return out(res, 409, { error: 'Um saque já pago não pode voltar de status.' });
       const { data: updated, error } = await a.from('wallet_withdrawals').update({ status, reviewed_by: user.id, updated_at: new Date().toISOString() }).eq('id', id).select().single();
       if (error) throw error;
-      // If a withdrawal is rejected, refund the amount + fee exactly once.
       if (status === 'REJECTED' && w.status !== 'REJECTED') {
         const { count, error: txError } = await a.from('wallet_transactions').select('id', { count: 'exact', head: true }).eq('reference_id', id).eq('type', 'REFUND');
         if (txError) throw txError;
         if ((count || 0) === 0) {
           const refund = Number(w.amount) + Number(w.fee || 0);
-          const { error: balanceError } = await a.from('wallet_accounts').upsert({ user_id: w.user_id, balance: refund, updated_at: new Date().toISOString() }, { onConflict: 'user_id', ignoreDuplicates: false });
-          if (balanceError) {
-            const { data: acc } = await a.from('wallet_accounts').select('balance').eq('user_id', w.user_id).maybeSingle();
-            if (acc) { const { error: updateError } = await a.from('wallet_accounts').update({ balance: Number(acc.balance) + refund, updated_at: new Date().toISOString() }).eq('user_id', w.user_id); if (updateError) throw updateError; }
+          const { data: acc, error: accError } = await a.from('wallet_accounts').select('balance').eq('user_id', w.user_id).maybeSingle();
+          if (accError) throw accError;
+          if (acc) {
+            const { error: balanceError } = await a.from('wallet_accounts').update({ balance: Number(acc.balance) + refund, updated_at: new Date().toISOString() }).eq('user_id', w.user_id);
+            if (balanceError) throw balanceError;
+          } else {
+            const { error: createError } = await a.from('wallet_accounts').insert({ user_id: w.user_id, balance: refund });
+            if (createError) throw createError;
           }
-          await a.from('wallet_transactions').insert({ user_id: w.user_id, type: 'REFUND', amount: refund, fee: 0, reference_id: id, description: 'Estorno de saque recusado' });
+          const { error: refundError } = await a.from('wallet_transactions').insert({ user_id: w.user_id, type: 'REFUND', amount: refund, fee: 0, reference_id: id, description: 'Estorno de saque recusado' });
+          if (refundError) throw refundError;
         }
       }
       return out(res, 200, { withdrawal: updated });

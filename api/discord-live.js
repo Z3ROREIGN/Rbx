@@ -3,10 +3,16 @@ import { discordEvent, updateDiscordMessage, deleteDiscordMessage, buildEmbed } 
 
 export const config = { runtime: 'edge' };
 
-const json = (res, status, body) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-  return res.status(status).json(body);
-};
+function json(status, body) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+      Pragma: 'no-cache',
+      'Content-Type': 'application/json; charset=utf-8',
+    },
+  });
+}
 
 function money(value) {
   return `R$ ${Number(value || 0).toFixed(2).replace('.', ',')}`;
@@ -98,12 +104,12 @@ async function saveState(db, channel, messageId) {
   if (error) throw new Error(`discord_live_message_state write: ${error.message}`);
 }
 
-export default async function handler(req, res) {
-  if (req.method !== 'GET' && req.method !== 'POST') return json(res, 405, { error: 'Método não permitido.' });
+export default async function handler(request) {
+  if (request.method !== 'GET' && request.method !== 'POST') return json(405, { error: 'Método não permitido.' });
 
   const cronSecret = process.env.CRON_SECRET;
-  const auth = String(req.headers.authorization || '');
-  if (!cronSecret || auth !== `Bearer ${cronSecret}`) return json(res, 401, { error: 'Não autorizado.' });
+  const auth = String(request.headers.get('authorization') || '');
+  if (!cronSecret || auth !== `Bearer ${cronSecret}`) return json(401, { error: 'Não autorizado.' });
 
   if (!hasServerConfig()) {
     console.error('discord-live: configuração do servidor incompleta', {
@@ -113,7 +119,7 @@ export default async function handler(req, res) {
       marketplaceWebhook: Boolean(process.env.DISCORD_WEBHOOK_MARKETPLACE),
       featuredWebhook: Boolean(process.env.DISCORD_WEBHOOK_FEATURED),
     });
-    return json(res, 500, { error: 'Configuração do servidor incompleta.' });
+    return json(500, { error: 'Configuração do servidor incompleta.' });
   }
 
   try {
@@ -157,9 +163,9 @@ export default async function handler(req, res) {
       }
     }
 
-    return json(res, 200, { ok: true, results, updatedAt: new Date().toISOString() });
+    return json(200, { ok: true, results, updatedAt: new Date().toISOString() });
   } catch (error) {
     console.error('discord-live:', error?.message || error);
-    return json(res, 500, { error: 'Falha ao atualizar o painel público do Discord.' });
+    return json(500, { error: 'Falha ao atualizar o painel público do Discord.' });
   }
 }

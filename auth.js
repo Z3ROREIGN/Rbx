@@ -1,9 +1,9 @@
-// Best Robux — cliente Supabase centralizado e resiliente.
+// Best Robux — cliente Supabase centralizado, resiliente e sem carregamentos infinitos.
 // Somente chave publishable no navegador. Nunca coloque secret/service_role aqui.
 (function () {
   const URL = 'https://anlwpqwjjswkqncltcdl.supabase.co';
   const KEY = 'sb_publishable_r3GoKwcOEaXySt7fFOM_0A_rNOc7Mq7';
-  const TIMEOUT = 8000;
+  const TIMEOUT = 10000;
 
   if (!window.supabase || typeof window.supabase.createClient !== 'function') {
     window.bestRobuxAuthReady = Promise.resolve(null);
@@ -13,6 +13,27 @@
   }
 
   const originalCreateClient = window.supabase.createClient.bind(window.supabase);
+
+  // Timeout somente para as requisições feitas pelo cliente Supabase.
+  // Não altera fetch global do site e não interfere em downloads, imagens ou pagamentos.
+  const supabaseFetch = async (input, init = {}) => {
+    const controller = new AbortController();
+    const externalSignal = init.signal;
+    let timer;
+    const abortFromExternal = () => controller.abort(externalSignal?.reason);
+    try {
+      if (externalSignal) {
+        if (externalSignal.aborted) controller.abort(externalSignal.reason);
+        else externalSignal.addEventListener('abort', abortFromExternal, { once: true });
+      }
+      timer = setTimeout(() => controller.abort(new Error('Supabase request timeout')), TIMEOUT);
+      return await fetch(input, { ...init, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+      externalSignal?.removeEventListener?.('abort', abortFromExternal);
+    }
+  };
+
   const client = originalCreateClient(URL, KEY, {
     auth: {
       persistSession: true,
@@ -20,29 +41,32 @@
       detectSessionInUrl: true,
       storageKey: 'bestrobux-auth',
       storage: window.localStorage,
-      flowType: 'pkce',
-      lock: false
+      flowType: 'pkce'
     },
     global: {
-      headers: { 'x-client-info': 'bestrobux-web' }
+      headers: { 'x-client-info': 'bestrobux-web' },
+      fetch: supabaseFetch
     }
   });
 
   window.bestRobuxSupabase = client;
+  // Mantém compatibilidade com páginas antigas que ainda chamam createClient.
   window.supabase.createClient = function () { return client; };
 
   function timeout(promise, ms = TIMEOUT) {
+    let timer;
     return Promise.race([
       promise,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase timeout')), ms))
-    ]);
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Supabase timeout')), ms);
+      })
+    ]).finally(() => clearTimeout(timer));
   }
 
   async function getValidSession() {
     try {
       const current = await timeout(client.auth.getSession());
-      if (current.data?.session) return current.data.session;
-      return null;
+      return current.data?.session || null;
     } catch (error) {
       console.warn('[Best Robux] sessão indisponível:', error?.message || error);
       return null;
@@ -53,7 +77,7 @@
   window.bestRobuxAuthReady = (async function () {
     const session = await getValidSession();
 
-    if (session) {
+    if (session?.user?.id) {
       try {
         const result = await timeout(client
           .from('profiles')
@@ -70,7 +94,7 @@
           }
         }
       } catch (error) {
-        // O status da conta não pode impedir o site de abrir se o banco estiver temporariamente lento.
+        // Indisponibilidade temporária do perfil não bloqueia o carregamento do site.
         console.warn('[Best Robux] verificação de status indisponível:', error?.message || error);
       }
     }

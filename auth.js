@@ -16,10 +16,17 @@
   });
   window.bestRobuxSupabase = client;
   window.supabase.createClient = function () { return client; };
+  async function getValidSession() {
+    const first = await client.auth.getSession();
+    if (first.error) throw first.error;
+    if (first.data?.session) return first.data.session;
+    const refreshed = await client.auth.refreshSession();
+    if (refreshed.error) return null;
+    return refreshed.data?.session || null;
+  }
+  window.bestRobuxGetSession = getValidSession;
   window.bestRobuxAuthReady = (async function () {
-    const { data, error } = await client.auth.getSession();
-    if (error) console.warn('[Best Robux] sessão:', error.message);
-    const session = data && data.session ? data.session : null;
+    let session = await getValidSession();
     if (session) {
       try {
         const { data: profile, error: profileError } = await client

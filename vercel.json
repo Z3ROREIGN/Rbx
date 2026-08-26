@@ -1,4 +1,5 @@
 {
+  "rewrites": [{"source":"/(.*)","destination":"/maintenance.html"}],
   "headers": [
     {"source":"/(.*)","headers":[
       {"key":"X-Content-Type-Options","value":"nosniff"},
@@ -13,10 +14,6 @@
       {"key":"Pragma","value":"no-cache"}
     ]}
   ],
-  "functions": {
-    "api/*.js": {"maxDuration": 15}
-  },
-  "crons": [
-    {"path":"/api/discord-live","schedule":"18 10 * * *"}
-  ]
+  "functions": {"api/*.js": {"maxDuration": 15}},
+  "crons": [{"path":"/api/discord-live","schedule":"18 10 * * *"}]
 }

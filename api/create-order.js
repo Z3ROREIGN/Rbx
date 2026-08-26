@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { broadcastEvent } from './_discord.js';
 const json=(res,status,body)=>res.status(status).json(body);
 const digits=v=>String(v||'').replace(/\D/g,'').slice(0,11);
 function validCPF(v){const d=digits(v);if(d.length!==11||/^(\d)\1+$/.test(d))return false;let s=0;for(let i=0;i<9;i++)s+=+d[i]*(10-i);let r=(s*10)%11;if(r===10)r=0;if(r!==+d[9])return false;s=0;for(let i=0;i<10;i++)s+=+d[i]*(11-i);r=(s*10)%11;if(r===10)r=0;return r===+d[10]}
@@ -26,5 +27,6 @@ export default async function handler(req,res){if(req.method!=='POST')return jso
  stage='save-payment';const {data:saved,error:updateError}=await sessionClient.rpc('set_order_payment',{p_order_id:order.id,p_status:'PENDING',p_payment_transaction_id:String(gatewayId),p_pix_copy_paste:copy?String(copy):null,p_pix_qr_code:qr?String(qr):null});if(updateError){console.error('create-order update:',dbMessage(updateError));return json(res,500,{error:`Erro interno no banco (payment-save): ${dbMessage(updateError)}`,orderId:order.id});}
  if(couponId){const redemption=await sessionClient.rpc('redeem_coupon',{p_coupon_id:couponId,p_order_id:order.id});if(redemption.error){console.error('coupon redemption:',dbMessage(redemption.error));return json(res,500,{error:'Pagamento criado, mas não foi possível registrar o cupom. Entre em contato com o suporte.',orderId:order.id})}}
  await sessionClient.rpc('add_order_event',{p_order_id:order.id,p_status:'PENDING',p_note:couponId?`Cupom ${validCoupon} aplicado. Desconto: R$ ${discount.toFixed(2)}`:'Pedido criado'});
+ await broadcastEvent({channels:amount>=50?['updates','featured']:['updates'],title:'🛒 Novo pedido • pagamento PIX criado',description:'Um novo pedido foi criado e aguarda a confirmação do pagamento.',type:'info',fields:[{name:'Pedido',value:order.id},{name:'Robux',value:quantity.toLocaleString('pt-BR')},{name:'Método',value:type},{name:'Usuário Roblox',value:robloxUsername},{name:'Total',value:`R$ ${amount.toFixed(2)}`},{name:'Status',value:'PENDING'}]});
  return json(res,201,{order:{...order,status:saved?.status||order.status},payment:{transaction_id:String(gatewayId),copy_paste:copy?String(copy):null,qr_code:qr?String(qr):null},pricing:{subtotal,discount,total:amount,coupon:validCoupon}});
 }catch(e){console.error('create-order:',stage,e);return json(res,500,{error:`Erro interno ao criar o pedido (${stage}): ${e?.message||'erro desconhecido'}`})}}

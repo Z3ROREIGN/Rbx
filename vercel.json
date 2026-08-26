@@ -17,6 +17,6 @@
     "api/*.js": {"maxDuration": 15}
   },
   "crons": [
-    {"path":"/api/discord-live","schedule":"20 10 * * *"}
+    {"path":"/api/discord-live","schedule":"15 10 * * *"}
   ]
 }

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 const json=(res,s,b)=>{res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');return res.status(s).json(b)};
 const db=()=>createClient(process.env.SUPABASE_URL,process.env.SUPABASE_ANON_KEY,{auth:{persistSession:false}});const admin=()=>createClient(process.env.SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false}});
-async function auth(req){const token=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'').trim();if(!token||token.length>8192)throw Error('AUTH');const {data,error}=await db().auth.getUser(token);if(error||!data.user)throw Error('AUTH');return data.user}
+async function auth(req){const token=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'').trim();if(!token||token.length>8192)throw Error('AUTH');const {data,error}=await admin().auth.getUser(token);if(error||!data.user)throw Error('AUTH');return data.user}
 const money=v=>Math.round(Number(v)*100)/100;
 function stockKey(){const k=process.env.MARKETPLACE_STOCK_KEY||process.env.MARKETPLACE_ARCHIVE_KEY;if(!k||k==='CHANGE_ME_SET_A_REAL_SECRET')throw Error('MARKETPLACE_STOCK_KEY não configurada.');return k}
 async function encryptText(text){if(text.length>4096)throw Error('Cada item digital deve ter no máximo 4096 caracteres.');const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(stockKey()));const key=await crypto.subtle.importKey('raw',hash,{name:'AES-GCM'},false,['encrypt']);const iv=crypto.getRandomValues(new Uint8Array(12));const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(text));return `${Buffer.from(iv).toString('base64')}.${Buffer.from(cipher).toString('base64')}`}

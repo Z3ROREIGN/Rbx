@@ -1,1 +1,10 @@
-export default function handler(req,res){res.setHeader('Cache-Control','no-store');if(req.method!=='GET')return res.status(405).json({error:'Método não permitido.'});const url=process.env.SUPABASE_URL||'',key=process.env.SUPABASE_ANON_KEY||'';if(!url||!key)return res.status(503).json({error:'Serviço não configurado.'});return res.status(200).json({supabaseUrl:url,supabaseAnonKey:key})}
+export const config = { runtime: 'edge' };
+
+export default function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
+  const url = process.env.SUPABASE_URL || '';
+  const key = process.env.SUPABASE_ANON_KEY || '';
+  if (!url || !key) return res.status(503).json({ error: 'Serviço não configurado.' });
+  return res.status(200).json({ supabaseUrl: url, supabaseAnonKey: key });
+}

@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { discordEvent, updateDiscordMessage, deleteDiscordMessage, buildEmbed } from './_discord.js';
 
+export const config = { runtime: 'edge' };
+
 const json = (res, status, body) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   return res.status(status).json(body);

@@ -17,7 +17,7 @@
     "api/*.js": {"maxDuration": 15}
   },
   "crons": [
-    {"path":"/api/marketplace-expire-cron","schedule":"* * * * *"},
-    {"path":"/api/discord-live","schedule":"* * * * *"}
+    {"path":"/api/marketplace-expire-cron","schedule":"0 0 * * *"},
+    {"path":"/api/discord-live","schedule":"0 0 * * *"}
   ]
 }

@@ -1,4 +1,5 @@
 {
+  "rewrites": [{"source":"/(.*)","destination":"/maintenance.html"}],
   "headers": [
     {"source":"/(.*)","headers":[
       {"key":"X-Content-Type-Options","value":"nosniff"},

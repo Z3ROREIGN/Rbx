@@ -1,19 +1,24 @@
-export default function handler(req, res) {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
+export const config = { runtime: 'edge' };
 
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Método não permitido.' });
+export default async function handler(request) {
+  const headers = {
+    'Cache-Control': 'no-store, no-cache, must-revalidate',
+    Pragma: 'no-cache',
+    'X-Content-Type-Options': 'nosniff',
+    'Content-Type': 'application/json; charset=utf-8',
+  };
+
+  if (request.method !== 'GET') {
+    return new Response(JSON.stringify({ error: 'Método não permitido.' }), { status: 405, headers });
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL || '';
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
+  const supabaseUrl = process.env.SUPABASE_URL || 'https://anlwpqwjjswkqncltcdl.supabase.co';
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'sb_publishable_r3GoKwcOEaXySt7fFOM_0A_rNOc7Mq7';
 
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error('CONFIG_MISSING: Supabase público não configurado');
-    return res.status(503).json({ error: 'Serviço de autenticação temporariamente indisponível.' });
+    return new Response(JSON.stringify({ error: 'Serviço de autenticação temporariamente indisponível.' }), { status: 503, headers });
   }
 
-  return res.status(200).json({ supabaseUrl, supabaseAnonKey });
+  return new Response(JSON.stringify({ supabaseUrl, supabaseAnonKey }), { status: 200, headers });
 }

@@ -13,7 +13,8 @@ export default async function handler(request) {
   }
 
   const supabaseUrl = process.env.SUPABASE_URL || 'https://anlwpqwjjswkqncltcdl.supabase.co';
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'sb_publishable_r3GoKwcOEaXySt7fFOM_0A_rNOc7Mq7';
+  // Prefer the modern publishable key. Legacy anon remains a compatibility fallback.
+  const supabaseAnonKey = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || 'sb_publishable_r3GoKwcOEaXySt7fFOM_0A_rNOc7Mq7';
 
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error('CONFIG_MISSING: Supabase público não configurado');

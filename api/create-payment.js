@@ -1,4 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
+
+export const config = { runtime: 'edge' };
+
 const digits=v=>String(v||'').replace(/\D/g,'').slice(0,11);const json=(res,status,body)=>res.status(status).json(body);const dbError=e=>[e?.code,e?.message,e?.details,e?.hint].filter(Boolean).join(' — ').slice(0,500)||'erro de banco';
 function validCPF(v){const d=digits(v);if(d.length!==11||/^(\d)\1+$/.test(d))return false;let s=0;for(let i=0;i<9;i++)s+=Number(d[i])*(10-i);let r=(s*10)%11;if(r===10)r=0;if(r!==Number(d[9]))return false;s=0;for(let i=0;i<10;i++)s+=Number(d[i])*(11-i);r=(s*10)%11;if(r===10)r=0;return r===Number(d[10])}
 function env(name){const value=process.env[name];if(!value)throw new Error(`Missing ${name}`);return value}

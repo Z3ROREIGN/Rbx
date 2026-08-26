@@ -5,6 +5,9 @@
   const KEY = 'sb_publishable_r3GoKwcOEaXySt7fFOM_0A_rNOc7Mq7';
   const TIMEOUT = 10000;
 
+  function loadCore(){try{if(window.__BR_CORE_LOADER__)return;window.__BR_CORE_LOADER__=true;const s=document.createElement('script');s.src='/site-core.js';s.async=false;(document.head||document.documentElement).appendChild(s)}catch{}}
+  loadCore();
+
   if (!window.supabase || typeof window.supabase.createClient !== 'function') {
     window.bestRobuxAuthReady = Promise.resolve(null);
     window.bestRobuxGetSession = async () => null;
@@ -13,9 +16,6 @@
   }
 
   const originalCreateClient = window.supabase.createClient.bind(window.supabase);
-
-  // Timeout somente para as requisições feitas pelo cliente Supabase.
-  // Não altera fetch global do site e não interfere em downloads, imagens ou pagamentos.
   const supabaseFetch = async (input, init = {}) => {
     const controller = new AbortController();
     const externalSignal = init.signal;
@@ -50,7 +50,6 @@
   });
 
   window.bestRobuxSupabase = client;
-  // Mantém compatibilidade com páginas antigas que ainda chamam createClient.
   window.supabase.createClient = function () { return client; };
 
   function timeout(promise, ms = TIMEOUT) {
@@ -76,35 +75,18 @@
   window.bestRobuxGetSession = getValidSession;
   window.bestRobuxAuthReady = (async function () {
     const session = await getValidSession();
-
     if (session?.user?.id) {
       try {
-        const result = await timeout(client
-          .from('profiles')
-          .select('account_status,suspended_until')
-          .eq('id', session.user.id)
-          .maybeSingle());
+        const result = await timeout(client.from('profiles').select('account_status,suspended_until').eq('id', session.user.id).maybeSingle());
         const profile = result.data;
         if (profile) {
           const banned = profile.account_status === 'BANNED';
           const suspended = profile.account_status === 'SUSPENDED' && profile.suspended_until && new Date(profile.suspended_until) > new Date();
-          if (banned || suspended) {
-            await timeout(client.auth.signOut());
-            return null;
-          }
+          if (banned || suspended) { await timeout(client.auth.signOut()); return null; }
         }
-      } catch (error) {
-        // Indisponibilidade temporária do perfil não bloqueia o carregamento do site.
-        console.warn('[Best Robux] verificação de status indisponível:', error?.message || error);
-      }
+      } catch (error) { console.warn('[Best Robux] verificação de status indisponível:', error?.message || error); }
     }
-
-    client.auth.onAuthStateChange((event, nextSession) => {
-      window.dispatchEvent(new CustomEvent('bestrobux:auth', {
-        detail: { event, session: nextSession }
-      }));
-    });
-
+    client.auth.onAuthStateChange((event, nextSession) => window.dispatchEvent(new CustomEvent('bestrobux:auth',{detail:{event,session:nextSession}})));
     return session;
   })();
 })();

@@ -1,25 +1,11 @@
-export const config = { runtime: 'edge' };
+export const config = { runtime: 'nodejs' };
 
-export default async function handler(request) {
-  const headers = {
-    'Cache-Control': 'no-store, no-cache, must-revalidate',
-    Pragma: 'no-cache',
-    'X-Content-Type-Options': 'nosniff',
-    'Content-Type': 'application/json; charset=utf-8',
-  };
+const json=(res,status,body)=>{res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.setHeader('Pragma','no-cache');res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Content-Type','application/json; charset=utf-8');return res.status(status).json(body)};
 
-  if (request.method !== 'GET') {
-    return new Response(JSON.stringify({ error: 'Método não permitido.' }), { status: 405, headers });
-  }
-
-  const supabaseUrl = process.env.SUPABASE_URL || 'https://anlwpqwjjswkqncltcdl.supabase.co';
-  // Prefer the modern publishable key. Legacy anon remains a compatibility fallback.
-  const supabaseAnonKey = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || 'sb_publishable_r3GoKwcOEaXySt7fFOM_0A_rNOc7Mq7';
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('CONFIG_MISSING: Supabase público não configurado');
-    return new Response(JSON.stringify({ error: 'Serviço de autenticação temporariamente indisponível.' }), { status: 503, headers });
-  }
-
-  return new Response(JSON.stringify({ supabaseUrl, supabaseAnonKey }), { status: 200, headers });
+export default async function handler(req,res){
+  if(req.method!=='GET') return json(res,405,{error:'Método não permitido.'});
+  const supabaseUrl=process.env.SUPABASE_URL||'https://anlwpqwjjswkqncltcdl.supabase.co';
+  const supabaseAnonKey=process.env.SUPABASE_PUBLISHABLE_KEY||process.env.SUPABASE_ANON_KEY||'sb_publishable_r3GoKwcOEaXySt7fFOM_0A_rNOc7Mq7';
+  if(!supabaseUrl||!supabaseAnonKey){console.error('CONFIG_MISSING: Supabase público não configurado');return json(res,503,{error:'Serviço temporariamente indisponível.'})}
+  return json(res,200,{supabaseUrl,supabaseAnonKey});
 }
